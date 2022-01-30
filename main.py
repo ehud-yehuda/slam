@@ -9,7 +9,7 @@ H = 3840 // 2
 disp = Display(w=W, h=H)
 
 def process_image(img):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, (W, H))
     disp.draw(img)
 
