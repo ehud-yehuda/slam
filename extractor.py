@@ -20,13 +20,10 @@ class FeatueExtractor:
         # extract
         kps, des = self.orb.compute(img, kps)
         # matching
-        results = []
+        matches = None
         if self.last is not None:
-            matches = self.BF_FeatureMatcher(self.last['des'], des)
-            #m.queryIdx src matching
-            #m. trainIdx dst
-            matches = zip([kps[m.queryIdx] for m in matches], [kps[m.trainIdx] for m in matches])
-            [self._drawMatchesImg(img, m) for m in matches]
+            matches = self.BF_knnMatch(kps, des, img)
+
         self.last = {'kps': kps, 'des': des}
         return matches
 
@@ -46,19 +43,23 @@ class FeatueExtractor:
                     self._drawKpImg(p, img)
         return kpa
 
-    def BF_FeatureMatcher(self, des1, des2):
+    def BF_FeatureMatcher(self, des1, des2, img):
         no_of_matches = self.brute_force.match(des1, des2)
 
         # finding the humming distance of the matches and sorting them
         no_of_matches = sorted(no_of_matches, key=lambda x: x.distance)
+        matches = zip([kps[m.queryIdx] for m in matches], [kps[m.trainIdx] for m in matches])
+        [self._drawMatchesImg(img, m) for m in matches]
         return no_of_matches
 
-    def BF_knnMatch(self, kps, des):
-        matches = self.brute_force.knnMatch(des, self.last['dest'], k=2)
+    def BF_knnMatch(self, kps, des, img):
+        matches = self.brute_force.knnMatch(des, self.last['des'], k=2)
         ret = []
         for m,n in matches:
             if m.distance < 0.75 * n.distance:
-               ret.append(kps[m.queryIdx], self.last['kps'][m.trainIdx])
+                ret.append((kps[m.queryIdx], self.last['kps'][m.trainIdx]))
+                self._drawMatchesImg(img, ret[-1])
+        return ret
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
         u, v = map(lambda x: int(round(x)), kp.pt)
@@ -69,3 +70,4 @@ class FeatueExtractor:
         u1, v1 = self._drawKpImg(match[0], img)
         u2, v2 = self._drawKpImg(match[1], img)
         cv2.line(img, (u1, v1), (u2, v2), (255, 0, 0))
+        return
