@@ -2,10 +2,10 @@ import cv2
 import sys
 
 import numpy as np
+
 #my classes
 from Display import Display
 from extractor import FeatueExtractor
-
 
 W = 2160 // 2
 H = 3840 // 4
@@ -15,9 +15,8 @@ fe = FeatueExtractor()
 
 def process_image(img):
     img = cv2.resize(img, (W, H))
-    kps, des, matches = fe.extract(img)
-    # print(kps)
-    # print(des)
+    matches = fe.extract(img)
+
     disp.draw(img)
 
 def run():

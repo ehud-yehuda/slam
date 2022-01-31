@@ -7,7 +7,7 @@ class FeatueExtractor:
     GY = 8 #num of rectangles divided height
     def __init__(self):
         self.orb = cv2.ORB_create(100)
-        self.brute_force = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        self.brute_force = cv2.BFMatcher(cv2.NORM_HAMMING)
         self.last = None
 
     def extract(self, img):
@@ -16,16 +16,19 @@ class FeatueExtractor:
         feats = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8), 3000, qualityLevel=0.01, minDistance=3)
         for feat in feats:
             kps.append(cv2.KeyPoint(x=feat[0][0], y=feat[0][1], _size=20))
-            self._drawKpImg(feat, img, color=(0, 0, 255))
+            # self._drawKpImg(feat, img, color=(0, 0, 255))
         # extract
         kps, des = self.orb.compute(img, kps)
-        matches = None
         # matching
+        results = []
         if self.last is not None:
             matches = self.BF_FeatureMatcher(self.last['des'], des)
-
+            #m.queryIdx src matching
+            #m. trainIdx dst
+            matches = zip([kps[m.queryIdx] for m in matches], [kps[m.trainIdx] for m in matches])
+            [self._drawMatchesImg(img, m) for m in matches]
         self.last = {'kps': kps, 'des': des}
-        return feats, des, matches
+        return matches
 
     def extractORB(self, img):
         kpa = []
@@ -50,8 +53,19 @@ class FeatueExtractor:
         no_of_matches = sorted(no_of_matches, key=lambda x: x.distance)
         return no_of_matches
 
-    def _drawKpImg(self, kp, img, color=(0, 255, 0)):
-        u, v = map(lambda x: int(round(x)), kp[0])
-        cv2.circle(img, (u, v), color=color, radius=3)
-        return
+    def BF_knnMatch(self, kps, des):
+        matches = self.brute_force.knnMatch(des, self.last['dest'], k=2)
+        ret = []
+        for m,n in matches:
+            if m.distance < 0.75 * n.distance:
+               ret.append(kps[m.queryIdx], self.last['kps'][m.trainIdx])
 
+    def _drawKpImg(self, kp, img, color=(0, 255, 0)):
+        u, v = map(lambda x: int(round(x)), kp.pt)
+        cv2.circle(img, (u, v), color=color, radius=3)
+        return u, v
+
+    def _drawMatchesImg(self, img, match):
+        u1, v1 = self._drawKpImg(match[0], img)
+        u2, v2 = self._drawKpImg(match[1], img)
+        cv2.line(img, (u1, v1), (u2, v2), (255, 0, 0))
