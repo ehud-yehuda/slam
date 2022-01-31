@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform
-
+from skimage.transform import EssentialMatrixTransform
 
 class FeatueExtractor:
     GX = 9 #num of rectangles divided widt
@@ -30,7 +30,7 @@ class FeatueExtractor:
             matches = self.BF_knnMatch(kps, des, img)
 
             #filter
-            matches = self.filterMatching(matches)
+            matches = self.filterMatching(matches, img.shape)
             if self.show:
                 for match in matches:
                     self._drawMatchesImg(match=match, img=img)
@@ -74,20 +74,27 @@ class FeatueExtractor:
                 ret.append((kp1, kp2))
         return ret
 
-    def filterMatching(self, data):
+    def filterMatching(self, data, img_shape):
         if data is not None and len(data) > 0:
             data = np.array(data)
+            #normalize coords movin to center
+            data[:, :, 0] -= img_shape[0] // 2
+            data[:, :, 1] -= img_shape[1] // 2
+
             model, inliers = ransac((data[:, 0], data[:, 1]),
-                                    FundamentalMatrixTransform,
+                                    # FundamentalMatrixTransform,
+                                    EssentialMatrixTransform,
                                     min_samples=8,
                                     residual_threshold=1,
                                     max_trials=100)
             data = data[inliers]
-            print(model)
+            u, v, d = np.linalg.svd(model.params)
+            print(v)
         return data
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
-        u, v = map(lambda x: int(round(x)), kp)
+        # u, v = map(lambda x: int(round(x)), kp)
+        u, v = int(round(kp[0] + img.shape[0] // 2)), int(round(kp[1] + img.shape[1] // 2))
         cv2.circle(img, (u, v), color=color, radius=3)
         return u, v
 
