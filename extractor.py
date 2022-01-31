@@ -24,6 +24,8 @@ class FeatueExtractor:
         if self.last is not None:
             matches = self.BF_knnMatch(kps, des, img)
 
+
+
         self.last = {'kps': kps, 'des': des}
         return matches
 
@@ -57,12 +59,14 @@ class FeatueExtractor:
         ret = []
         for m,n in matches:
             if m.distance < 0.75 * n.distance:
-                ret.append((kps[m.queryIdx], self.last['kps'][m.trainIdx]))
+                kp1 = kps[m.queryIdx].pt
+                kp2 = self.last['kps'][m.trainIdx].pt
+                ret.append((kp1, kp2))
                 self._drawMatchesImg(img, ret[-1])
         return ret
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
-        u, v = map(lambda x: int(round(x)), kp.pt)
+        u, v = map(lambda x: int(round(x)), kp)
         cv2.circle(img, (u, v), color=color, radius=3)
         return u, v
 
