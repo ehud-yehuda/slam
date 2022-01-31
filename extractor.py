@@ -1,14 +1,17 @@
 import cv2
 import numpy as np
+from skimage.measure import ransac
+from skimage.transform import FundamentalMatrixTransform
 
 
 class FeatueExtractor:
     GX = 9 #num of rectangles divided widt
     GY = 8 #num of rectangles divided height
-    def __init__(self):
+    def __init__(self, show=True):
         self.orb = cv2.ORB_create(100)
         self.brute_force = cv2.BFMatcher(cv2.NORM_HAMMING)
         self.last = None
+        self.show = show
 
     def extract(self, img):
         kps = []
@@ -17,13 +20,20 @@ class FeatueExtractor:
         for feat in feats:
             kps.append(cv2.KeyPoint(x=feat[0][0], y=feat[0][1], _size=20))
             # self._drawKpImg(feat, img, color=(0, 0, 255))
+
         # extract
         kps, des = self.orb.compute(img, kps)
+
         # matching
         matches = None
         if self.last is not None:
             matches = self.BF_knnMatch(kps, des, img)
 
+            #filter
+            matches = self.filterMatching(matches)
+            if self.show:
+                for match in matches:
+                    self._drawMatchesImg(match=match, img=img)
 
 
         self.last = {'kps': kps, 'des': des}
@@ -62,8 +72,19 @@ class FeatueExtractor:
                 kp1 = kps[m.queryIdx].pt
                 kp2 = self.last['kps'][m.trainIdx].pt
                 ret.append((kp1, kp2))
-                self._drawMatchesImg(img, ret[-1])
         return ret
+
+    def filterMatching(self, data):
+        if data is not None and len(data) > 0:
+            data = np.array(data)
+            model, inliers = ransac((data[:, 0], data[:, 1]),
+                                    FundamentalMatrixTransform,
+                                    min_samples=8,
+                                    residual_threshold=1,
+                                    max_trials=100)
+            data = data[inliers]
+            print(model)
+        return data
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
         u, v = map(lambda x: int(round(x)), kp)
