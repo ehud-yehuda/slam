@@ -126,7 +126,7 @@ class FeatueExtractor:
         if np.sum(R.diagonal()) < 0:
             R = np.dot(np.dot(u, W.transpose()), vt)
         T = u[:, 2]
-        return (R, T)
+        return np.append(R, T.reshape(3, 1), axis=1)
 
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
