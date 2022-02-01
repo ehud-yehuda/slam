@@ -18,7 +18,7 @@ fe = FeatueExtractor(K)
 
 def process_image(img):
     img = cv2.resize(img, (W, H))
-    matches = fe.extract(img)
+    matches, RT = fe.extract(img)
     disp.draw(img)
 
 def run():

@@ -40,18 +40,20 @@ class FeatueExtractor:
 
         # matching
         matches = None
+        RT = None
         if self.last is not None:
             matches = self.BF_knnMatch(kps, des, img)
 
             #filter
-            matches = self.filterMatching(matches, img.shape)
+            matches, model = self.filterMatching(matches, img.shape)
+            RT = self.estimateRT(model)
             if self.show:
                 for match in matches:
                     self._drawMatchesImg(match=match, img=img)
 
-
         self.last = {'kps': kps, 'des': des}
-        return matches
+        print(RT)
+        return matches, RT
 
     def extractORB(self, img):
         kpa = []
@@ -99,19 +101,33 @@ class FeatueExtractor:
                                     # FundamentalMatrixTransform,
                                     EssentialMatrixTransform,
                                     min_samples=8,
+                                    # residual_threshold=1,
                                     residual_threshold=0.001,
                                     max_trials=100)
             data = data[inliers]
             #denormalized the coords back
             data[:, 0, :] = self.denormlizeCoords(data[:, 0, :])
             data[:, 1, :] = self.denormlizeCoords(data[:, 1, :])
-            s, v, d = np.linalg.svd(model.params)
-            print(v)
-            # f_est = np.sqrt(2) / ((v[0] + v[1])/2)
-            # fEst.append(f_est)
-            # print(f_est, np.median(fEst))
+        return data, model
 
-        return data
+    def estimateRT(self, model):
+        u, sig, vt = np.linalg.svd(model.params)
+        # done with fundemental matrix model residual higher
+        # f_est = np.sqrt(2) / ((v[0] + v[1])/2)
+        # fEst.append(f_est)
+        # print(f_est, np.median(fEst))
+
+        W = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+        assert np.linalg.det(u) > 0
+        if np.linalg.det(vt) < 0:
+            vt *= -1.0
+
+        R = np.dot(np.dot(u, W), vt)
+        if np.sum(R.diagonal()) < 0:
+            R = np.dot(np.dot(u, W.transpose()), vt)
+        T = u[:, 2]
+        return (R, T)
+
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
         # u, v = map(lambda x: int(round(x)), kp)
