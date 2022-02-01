@@ -4,6 +4,8 @@ from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform
 from skimage.transform import EssentialMatrixTransform
 
+fEst = []
+
 class FeatueExtractor:
     GX = 9 #num of rectangles divided widt
     GY = 8 #num of rectangles divided height
@@ -90,21 +92,25 @@ class FeatueExtractor:
         if data is not None and len(data) > 0:
             data = np.array(data)
             #normalize coords movin to center
-            data[:, :, 0] = self.normlizeCoords(data[:, :, 0])
-            data[:, :, 1] = self.normlizeCoords(data[:, :, 1])
+            data[:, 0, :] = self.normlizeCoords(data[:, 0, :])
+            data[:, 1, :] = self.normlizeCoords(data[:, 1, :])
 
             model, inliers = ransac((data[:, 0], data[:, 1]),
                                     # FundamentalMatrixTransform,
                                     EssentialMatrixTransform,
                                     min_samples=8,
-                                    residual_threshold=1,
+                                    residual_threshold=0.001,
                                     max_trials=100)
             data = data[inliers]
             #denormalized the coords back
-            data[:, :, 0] = self.denormlizeCoords(data[:, :, 0])
-            data[:, :, 1] = self.denormlizeCoords(data[:, :, 1])
-            u, v, d = np.linalg.svd(model.params)
+            data[:, 0, :] = self.denormlizeCoords(data[:, 0, :])
+            data[:, 1, :] = self.denormlizeCoords(data[:, 1, :])
+            s, v, d = np.linalg.svd(model.params)
             print(v)
+            # f_est = np.sqrt(2) / ((v[0] + v[1])/2)
+            # fEst.append(f_est)
+            # print(f_est, np.median(fEst))
+
         return data
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):

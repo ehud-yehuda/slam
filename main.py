@@ -10,7 +10,7 @@ from extractor import FeatueExtractor
 W = 2160 // 2
 H = 3840 // 4
 
-fx, fy = 1.0, 1.0
+fx, fy = 432.0, 432.0
 K = np.array([[fx, 0, W // 2], [0, fy, H // 2], [0, 0, 1]])
 
 disp = Display(w=W, h=H)
