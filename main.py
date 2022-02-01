@@ -10,8 +10,11 @@ from extractor import FeatueExtractor
 W = 2160 // 2
 H = 3840 // 4
 
+fx, fy = 1.0, 1.0
+K = np.array([[fx, 0, W // 2], [0, fy, H // 2], [0, 0, 1]])
+
 disp = Display(w=W, h=H)
-fe = FeatueExtractor()
+fe = FeatueExtractor(K)
 
 def process_image(img):
     img = cv2.resize(img, (W, H))

@@ -7,11 +7,21 @@ from skimage.transform import EssentialMatrixTransform
 class FeatueExtractor:
     GX = 9 #num of rectangles divided widt
     GY = 8 #num of rectangles divided height
-    def __init__(self, show=True):
+    def __init__(self, K, show=True):
         self.orb = cv2.ORB_create(100)
         self.brute_force = cv2.BFMatcher(cv2.NORM_HAMMING)
         self.last = None
         self.show = show
+        self.K = K
+        self.Kinv = np.linalg.inv(self.K)
+
+    def normlizeCoords(self, data):
+        data = np.append(data, np.ones((data.shape[0], 1)), axis=1)
+        return self.K.dot(data.transpose()).transpose()[:, :-1]
+
+    def denormlizeCoords(self, data):
+        data = np.append(data, np.ones((data.shape[0], 1)), axis=1)
+        return self.Kinv.dot(data.transpose()).transpose()[:, :-1]
 
     def extract(self, img):
         kps = []
@@ -78,8 +88,11 @@ class FeatueExtractor:
         if data is not None and len(data) > 0:
             data = np.array(data)
             #normalize coords movin to center
-            data[:, :, 0] -= img_shape[0] // 2
-            data[:, :, 1] -= img_shape[1] // 2
+            # data[:, :, 0] -= img_shape[0] // 2
+            # data[:, :, 1] -= img_shape[1] // 2
+
+            data[:, :, 0] = self.denormlizeCoords(data[:, :, 0])
+            data[:, :, 1] = self.denormlizeCoords(data[:, :, 1])
 
             model, inliers = ransac((data[:, 0], data[:, 1]),
                                     # FundamentalMatrixTransform,
@@ -88,13 +101,15 @@ class FeatueExtractor:
                                     residual_threshold=1,
                                     max_trials=100)
             data = data[inliers]
+            data[:, :, 0] = self.normlizeCoords(data[:, :, 0])
+            data[:, :, 1] = self.normlizeCoords(data[:, :, 1])
             u, v, d = np.linalg.svd(model.params)
             print(v)
         return data
 
     def _drawKpImg(self, kp, img, color=(0, 255, 0)):
         # u, v = map(lambda x: int(round(x)), kp)
-        u, v = int(round(kp[0] + img.shape[0] // 2)), int(round(kp[1] + img.shape[1] // 2))
+        u, v = int(round(kp[0])), int(round(kp[1]))
         cv2.circle(img, (u, v), color=color, radius=3)
         return u, v
 
