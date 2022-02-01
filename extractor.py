@@ -15,11 +15,13 @@ class FeatueExtractor:
         self.K = K
         self.Kinv = np.linalg.inv(self.K)
 
-    def normlizeCoords(self, data):
+    def denormlizeCoords(self, data):
         data = np.append(data, np.ones((data.shape[0], 1)), axis=1)
         return self.K.dot(data.transpose()).transpose()[:, :-1]
 
-    def denormlizeCoords(self, data):
+    def normlizeCoords(self, data):
+        # data[:, :, 0] -= img_shape[0] // 2
+        # data[:, :, 1] -= img_shape[1] // 2
         data = np.append(data, np.ones((data.shape[0], 1)), axis=1)
         return self.Kinv.dot(data.transpose()).transpose()[:, :-1]
 
@@ -88,11 +90,8 @@ class FeatueExtractor:
         if data is not None and len(data) > 0:
             data = np.array(data)
             #normalize coords movin to center
-            # data[:, :, 0] -= img_shape[0] // 2
-            # data[:, :, 1] -= img_shape[1] // 2
-
-            data[:, :, 0] = self.denormlizeCoords(data[:, :, 0])
-            data[:, :, 1] = self.denormlizeCoords(data[:, :, 1])
+            data[:, :, 0] = self.normlizeCoords(data[:, :, 0])
+            data[:, :, 1] = self.normlizeCoords(data[:, :, 1])
 
             model, inliers = ransac((data[:, 0], data[:, 1]),
                                     # FundamentalMatrixTransform,
@@ -101,8 +100,9 @@ class FeatueExtractor:
                                     residual_threshold=1,
                                     max_trials=100)
             data = data[inliers]
-            data[:, :, 0] = self.normlizeCoords(data[:, :, 0])
-            data[:, :, 1] = self.normlizeCoords(data[:, :, 1])
+            #denormalized the coords back
+            data[:, :, 0] = self.denormlizeCoords(data[:, :, 0])
+            data[:, :, 1] = self.denormlizeCoords(data[:, :, 1])
             u, v, d = np.linalg.svd(model.params)
             print(v)
         return data
