@@ -42,10 +42,10 @@ class FeatueExtractor:
         matches = None
         RT = None
         if self.last is not None:
-            matches = self.BF_knnMatch(kps, des, img)
+            matchesKp, matchesDes = self.BF_knnMatch(kps, des)
 
             #filter
-            matches, model = self.filterMatching(matches, img.shape)
+            matches, model = self.filterMatching(matchesKp, img.shape)
             RT = self.estimateRT(model)
             if self.show:
                 for match in matches:
@@ -80,15 +80,17 @@ class FeatueExtractor:
         [self._drawMatchesImg(img, m) for m in matches]
         return no_of_matches
 
-    def BF_knnMatch(self, kps, des, img):
+    def BF_knnMatch(self, kps, des):
         matches = self.brute_force.knnMatch(des, self.last['des'], k=2)
         ret = []
-        for m,n in matches:
+        desMatches = []
+        for m, n in matches:
             if m.distance < 0.75 * n.distance:
-                kp1 = kps[m.queryIdx].pt
-                kp2 = self.last['kps'][m.trainIdx].pt
+                kp1, kp2 = kps[m.queryIdx].pt, self.last['kps'][m.trainIdx].pt
+                des1, des2 = des[m.queryIdx], self.last['des'][m.trainIdx]
                 ret.append((kp1, kp2))
-        return ret
+                desMatches.append((des1, des2))
+        return ret, desMatches
 
     def filterMatching(self, data, img_shape):
         if data is not None and len(data) > 0:
