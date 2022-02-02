@@ -39,21 +39,21 @@ class FeatueExtractor:
         kps, des = self.orb.compute(img, kps)
 
         # matching
-        matches = None
+        matchesKp, matchesDes = None, None
         RT = None
         if self.last is not None:
             matchesKp, matchesDes = self.BF_knnMatch(kps, des)
 
             #filter
-            matches, model = self.filterMatching(matchesKp, img.shape)
+            matchesKp, matchesDes, model = self.filterMatching(matchesKp, matchesDes)
             RT = self.estimateRT(model)
             if self.show:
-                for match in matches:
+                for match in matchesKp:
                     self._drawMatchesImg(match=match, img=img)
 
         self.last = {'kps': kps, 'des': des}
         print(RT)
-        return matches, RT
+        return matchesKp, matchesDes, RT
 
     def extractORB(self, img):
         kpa = []
@@ -92,25 +92,28 @@ class FeatueExtractor:
                 desMatches.append((des1, des2))
         return ret, desMatches
 
-    def filterMatching(self, data, img_shape):
-        if data is not None and len(data) > 0:
-            data = np.array(data)
+    def filterMatching(self, dataKp, dataDes):
+        if dataKp is not None and len(dataKp) > 0:
+            dataKp = np.array(dataKp)
+            dataDes = np.array(dataDes)
             #normalize coords movin to center
-            data[:, 0, :] = self.normlizeCoords(data[:, 0, :])
-            data[:, 1, :] = self.normlizeCoords(data[:, 1, :])
+            dataKp[:, 0, :] = self.normlizeCoords(dataKp[:, 0, :])
+            dataKp[:, 1, :] = self.normlizeCoords(dataKp[:, 1, :])
 
-            model, inliers = ransac((data[:, 0], data[:, 1]),
+            model, inliers = ransac((dataKp[:, 0], dataKp[:, 1]),
                                     # FundamentalMatrixTransform,
                                     EssentialMatrixTransform,
                                     min_samples=8,
                                     # residual_threshold=1,
                                     residual_threshold=0.001,
                                     max_trials=100)
-            data = data[inliers]
+            dataKp = dataKp[inliers]
+            dataDes = dataDes[inliers]
+
             #denormalized the coords back
-            data[:, 0, :] = self.denormlizeCoords(data[:, 0, :])
-            data[:, 1, :] = self.denormlizeCoords(data[:, 1, :])
-        return data, model
+            dataKp[:, 0, :] = self.denormlizeCoords(dataKp[:, 0, :])
+            dataKp[:, 1, :] = self.denormlizeCoords(dataKp[:, 1, :])
+        return dataKp, dataDes, model
 
     def estimateRT(self, model):
         u, sig, vt = np.linalg.svd(model.params)

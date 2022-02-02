@@ -6,6 +6,7 @@ import numpy as np
 #my classes
 from Display import Display
 from extractor import FeatueExtractor
+from Frame import Frame
 
 W = 2160 // 2
 H = 3840 // 4
@@ -16,9 +17,11 @@ K = np.array([[fx, 0, W // 2], [0, fy, H // 2], [0, 0, 1]])
 disp = Display(w=W, h=H)
 fe = FeatueExtractor(K)
 
+
+frames = []
 def process_image(img):
     img = cv2.resize(img, (W, H))
-    matches, RT = fe.extract(img)
+    frames.append(Frame(img, fe))
     disp.draw(img)
 
 def run():
